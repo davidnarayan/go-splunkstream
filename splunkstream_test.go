@@ -5,7 +5,7 @@ import (
 )
 
 func TestNewClient(t *testing.T) {
-	_, err := NewClient("localhost:8089", &Config{})
+	_, err := NewClient(&Config{})
 
 	if err != nil {
 		t.Error(err)
