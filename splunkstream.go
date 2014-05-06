@@ -56,13 +56,10 @@ func (cf *Config) setDefaults() {
 //-----------------------------------------------------------------------------
 
 type Client struct {
-	Config     *Config
-	url        *url.URL
-	username   string
-	password   string
-	sentHeader bool
-
-	bw *bufio.Writer
+	Config      *Config
+	url         *url.URL
+	wroteHeader bool
+	bw          *bufio.Writer
 }
 
 func NewClient(config *Config) (*Client, error) {
@@ -116,24 +113,35 @@ func (c *Client) basicAuth() string {
 	return base64.StdEncoding.EncodeToString([]byte(auth))
 }
 
-// sendHeader sends the initial POST request with Authorization and HTTP
+// writeHeader sends the initial POST request with Authorization and HTTP
 // headers.
-func (c *Client) sendHeader() {
-	fmt.Fprintf(c.bw, "POST %s HTTP/1.1\r\n", c.url.RequestURI())
-	fmt.Fprintf(c.bw, "Host: %s\r\n", c.url.Host)
-	fmt.Fprintf(c.bw, "Authorization: Basic %s\r\n", c.basicAuth())
-	io.WriteString(c.bw, "x-splunk-input-mode: streaming\r\n")
-	io.WriteString(c.bw, "\r\n")
+func (c *Client) writeHeader() {
+	w := c.bw
 
-	c.sentHeader = true
+	fmt.Fprintf(w, "POST %s HTTP/1.1\r\n", c.url.RequestURI())
+	fmt.Fprintf(w, "Host: %s\r\n", c.url.Host)
+	fmt.Fprintf(w, "Authorization: Basic %s\r\n", c.basicAuth())
+	io.WriteString(w, "x-splunk-input-mode: streaming\r\n")
+	io.WriteString(w, "\r\n")
+
+	c.wroteHeader = true
 }
 
-// Send streams an event to Splunk
-func (c *Client) Send(s string) {
-	if !c.sentHeader {
-		c.sendHeader()
+// Write sends data to Splunk
+func (c *Client) Write(b []byte) (n int, err error) {
+	c.write(b)
+
+	return
+}
+
+func (c *Client) write(b []byte) {
+	if !c.wroteHeader {
+		c.writeHeader()
 	}
 
-	io.WriteString(c.bw, s)
-	io.WriteString(c.bw, "\r\n")
+	io.WriteString(c.bw, string(b))
+
+	if c.bw != nil {
+		c.bw.Flush()
+	}
 }
