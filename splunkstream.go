@@ -23,6 +23,10 @@ type Config struct {
 }
 
 func (cf *Config) setDefaults() {
+	if cf.Host == "" {
+		cf.Host = "localhost:8089"
+	}
+
 	if cf.Username == "" {
 		cf.Username = "admin"
 	}
