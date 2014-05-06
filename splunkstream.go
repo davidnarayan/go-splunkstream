@@ -56,7 +56,7 @@ func (cf *Config) setDefaults() {
 //-----------------------------------------------------------------------------
 
 type Client struct {
-	Conf       *Config
+	Config     *Config
 	url        *url.URL
 	username   string
 	password   string
@@ -103,9 +103,9 @@ func NewClient(config *Config) (*Client, error) {
 	bw := bufio.NewWriter(conn)
 
 	return &Client{
-		Conf: conf,
-		url:  u,
-		bw:   bw,
+		Config: config,
+		url:    u,
+		bw:     bw,
 	}, nil
 }
 
