@@ -14,6 +14,7 @@ import (
 //-----------------------------------------------------------------------------
 
 type Config struct {
+	Host       string
 	Username   string
 	Password   string
 	Source     string
