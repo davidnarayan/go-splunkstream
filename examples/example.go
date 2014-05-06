@@ -12,12 +12,12 @@ import (
 func main() {
 	//endpoint := "http://localhost:8089/services/receivers/stream?sourcetype=testevent&source=splunkstream"
 	c, err := splunkstream.NewClient(
-		"https://localhost:8089",
-		"admin",
-		"changeme",
-		"splunkstream",
-		"testevent",
-	)
+		"localhost:8089",
+		&splunkstream.Config{
+			Username:   "admin",
+			Password:   "changeme",
+			SourceType: "testevent",
+		})
 
 	if err != nil {
 		log.Fatal(err)

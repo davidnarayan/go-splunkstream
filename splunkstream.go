@@ -13,10 +13,45 @@ import (
 
 //-----------------------------------------------------------------------------
 
-var defaultPath = "/services/receivers/stream"
+type Config struct {
+	Username   string
+	Password   string
+	Source     string
+	SourceType string
+	Scheme     string
+	Endpoint   string
+}
+
+func (cf *Config) setDefaults() {
+	if cf.Username == "" {
+		cf.Username = "admin"
+	}
+
+	if cf.Password == "" {
+		cf.Password = "changeme"
+	}
+
+	if cf.Source == "" {
+		cf.Source = "splunkstream.go"
+	}
+
+	if cf.SourceType == "" {
+		cf.SourceType = "splunkstream"
+	}
+
+	if cf.Scheme == "" {
+		cf.Scheme = "https"
+	}
+
+	if cf.Endpoint == "" {
+		cf.Endpoint = "/services/receivers/stream"
+	}
+}
+
+//-----------------------------------------------------------------------------
 
 type Client struct {
-	conn       net.Conn
+	Conf       *Config
 	url        *url.URL
 	username   string
 	password   string
@@ -25,9 +60,11 @@ type Client struct {
 	bw *bufio.Writer
 }
 
-func NewClient(endpoint, username, password, source, sourcetype string) (*Client, error) {
-	rawurl := fmt.Sprintf("%s%s?sourcetype=%s&source=%s", endpoint, defaultPath,
-		sourcetype, source)
+func NewClient(host string, conf *Config) (*Client, error) {
+	conf.setDefaults()
+
+	rawurl := fmt.Sprintf("%s://%s%s?sourcetype=%s&source=%s", conf.Scheme,
+		host, conf.Endpoint, conf.SourceType, conf.Source)
 	u, err := url.Parse(rawurl)
 
 	if err != nil {
@@ -61,18 +98,16 @@ func NewClient(endpoint, username, password, source, sourcetype string) (*Client
 	bw := bufio.NewWriter(conn)
 
 	return &Client{
-		conn:     conn,
-		url:      u,
-		bw:       bw,
-		username: username,
-		password: password,
+		Conf: conf,
+		url:  u,
+		bw:   bw,
 	}, nil
 }
 
 // basicAuth returns base64 encoded credentials as per RFC2617. Also see
 // basicAuth in net/http/client.go.
 func (c *Client) basicAuth() string {
-	auth := c.username + ":" + c.password
+	auth := c.Conf.Username + ":" + c.Conf.Password
 	return base64.StdEncoding.EncodeToString([]byte(auth))
 }
 
