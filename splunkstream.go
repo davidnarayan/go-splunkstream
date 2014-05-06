@@ -65,11 +65,11 @@ type Client struct {
 	bw *bufio.Writer
 }
 
-func NewClient(host string, conf *Config) (*Client, error) {
-	conf.setDefaults()
+func NewClient(config *Config) (*Client, error) {
+	config.setDefaults()
 
-	rawurl := fmt.Sprintf("%s://%s%s?sourcetype=%s&source=%s", conf.Scheme,
-		host, conf.Endpoint, conf.SourceType, conf.Source)
+	rawurl := fmt.Sprintf("%s://%s%s?sourcetype=%s&source=%s", config.Scheme,
+		config.Host, config.Endpoint, config.SourceType, config.Source)
 	u, err := url.Parse(rawurl)
 
 	if err != nil {
