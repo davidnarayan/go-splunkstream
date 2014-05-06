@@ -112,7 +112,7 @@ func NewClient(config *Config) (*Client, error) {
 // basicAuth returns base64 encoded credentials as per RFC2617. Also see
 // basicAuth in net/http/client.go.
 func (c *Client) basicAuth() string {
-	auth := c.Conf.Username + ":" + c.Conf.Password
+	auth := c.Config.Username + ":" + c.Config.Password
 	return base64.StdEncoding.EncodeToString([]byte(auth))
 }
 
