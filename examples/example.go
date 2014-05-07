@@ -10,13 +10,14 @@ import (
 )
 
 func main() {
-	//endpoint := "http://localhost:8089/services/receivers/stream?sourcetype=testevent&source=splunkstream"
 	c, err := splunkstream.NewClient(
-		"localhost:8089",
 		&splunkstream.Config{
+			Host:       "localhost:8089",
 			Username:   "admin",
 			Password:   "changeme",
 			SourceType: "testevent",
+			Source:     "splunkstream/example.go",
+			Scheme:     "http",
 		})
 
 	if err != nil {
@@ -33,8 +34,9 @@ func main() {
 
 	for i := 0; i < n; i++ {
 		event := fmt.Sprintf("%s [stream_id=%03d] Test event %d\n", time.Now(), id, i)
-		c.Send(event)
+		c.Write([]byte(event))
 	}
 
-	log.Printf("Sent %d events in %s", n, time.Now().Sub(t0))
+	c.Close()
+	log.Printf("Sent %d events to %s in %s", n, c, time.Now().Sub(t0))
 }
