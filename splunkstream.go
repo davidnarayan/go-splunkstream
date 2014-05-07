@@ -14,16 +14,24 @@ import (
 //-----------------------------------------------------------------------------
 
 type Config struct {
-	Host       string
-	Username   string
-	Password   string
+	Scheme   string
+	Host     string
+	Username string
+	Password string
+	Endpoint string
+
+	// Query args for receiver
 	Source     string
 	SourceType string
-	Scheme     string
-	Endpoint   string
+	RemoteHost string
+	Index      string
 }
 
 func (cf *Config) setDefaults() {
+	if cf.Scheme == "" {
+		cf.Scheme = "https"
+	}
+
 	if cf.Host == "" {
 		cf.Host = "localhost:8089"
 	}
@@ -36,6 +44,10 @@ func (cf *Config) setDefaults() {
 		cf.Password = "changeme"
 	}
 
+	if cf.Endpoint == "" {
+		cf.Endpoint = "/services/receivers/stream"
+	}
+
 	if cf.Source == "" {
 		cf.Source = "splunkstream.go"
 	}
@@ -43,21 +55,12 @@ func (cf *Config) setDefaults() {
 	if cf.SourceType == "" {
 		cf.SourceType = "splunkstream"
 	}
-
-	if cf.Scheme == "" {
-		cf.Scheme = "https"
-	}
-
-	if cf.Endpoint == "" {
-		cf.Endpoint = "/services/receivers/stream"
-	}
 }
 
 //-----------------------------------------------------------------------------
 
 type Client struct {
 	Config      *Config
-	url         *url.URL
 	wroteHeader bool
 	w           *bufio.Writer
 	conn        net.Conn
@@ -65,33 +68,24 @@ type Client struct {
 
 func NewClient(config *Config) (*Client, error) {
 	config.setDefaults()
-
-	rawurl := fmt.Sprintf("%s://%s%s?sourcetype=%s&source=%s", config.Scheme,
-		config.Host, config.Endpoint, config.SourceType, config.Source)
-	u, err := url.Parse(rawurl)
-
-	if err != nil {
-		return nil, err
-	}
-
 	var conn net.Conn
 
-	if u.Scheme == "https" {
+	if config.Scheme == "https" {
 		// Splunk uses a self-signed certificate
-		c, err := tls.Dial("tcp", u.Host, &tls.Config{InsecureSkipVerify: true})
+		c, err := tls.Dial("tcp", config.Host, &tls.Config{InsecureSkipVerify: true})
 
 		if err != nil {
 			return nil, fmt.Errorf("Unable to create TLS connection to %s: %s",
-				u, err)
+				config.Host, err)
 		}
 
 		conn = c
 	} else {
-		c, err := net.Dial("tcp", u.Host)
+		c, err := net.Dial("tcp", config.Host)
 
 		if err != nil {
 			return nil, fmt.Errorf("Unable to create connection to %s: %s",
-				u, err)
+				config.Host, err)
 		}
 
 		conn = c
@@ -102,7 +96,6 @@ func NewClient(config *Config) (*Client, error) {
 
 	return &Client{
 		Config: config,
-		url:    u,
 		w:      w,
 		conn:   conn,
 	}, nil
@@ -115,11 +108,33 @@ func (c *Client) basicAuth() string {
 	return base64.StdEncoding.EncodeToString([]byte(auth))
 }
 
+func (c *Client) URL() string {
+	u := &url.URL{
+		Scheme: c.Config.Scheme,
+		Host:   c.Config.Host,
+		Path:   c.Config.Endpoint,
+	}
+
+	v := url.Values{}
+	v.Set("sourcetype", c.Config.SourceType)
+	v.Set("source", c.Config.Source)
+
+	if c.Config.Index != "" {
+		v.Set("index", c.Config.Index)
+	}
+
+	if c.Config.RemoteHost != "" {
+		v.Set("host", c.Config.RemoteHost)
+	}
+
+	return u.String() + "?" + v.Encode()
+}
+
 // writeHeader sends the initial POST request with Authorization and HTTP
 // headers.
 func (c *Client) writeHeader() {
-	fmt.Fprintf(c.w, "POST %s HTTP/1.1\r\n", c.url.RequestURI())
-	fmt.Fprintf(c.w, "Host: %s\r\n", c.url.Host)
+	fmt.Fprintf(c.w, "POST %s HTTP/1.1\r\n", c.URL())
+	fmt.Fprintf(c.w, "Host: %s\r\n", c.Config.Host)
 	fmt.Fprintf(c.w, "Authorization: Basic %s\r\n", c.basicAuth())
 	io.WriteString(c.w, "x-splunk-input-mode: streaming\r\n")
 	io.WriteString(c.w, "\r\n")
@@ -140,7 +155,7 @@ func (c *Client) Write(b []byte) (n int, err error) {
 // String returns a string representation of the splunkstream client as an
 // HTTP endpoint
 func (c *Client) String() string {
-	return c.url.String()
+	return c.URL()
 }
 
 // Close finishes a stream by flushing anything in the buffer to the receiver
