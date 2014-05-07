@@ -59,7 +59,8 @@ type Client struct {
 	Config      *Config
 	url         *url.URL
 	wroteHeader bool
-	bw          *bufio.Writer
+	w           *bufio.Writer
+	conn        net.Conn
 }
 
 func NewClient(config *Config) (*Client, error) {
@@ -97,12 +98,13 @@ func NewClient(config *Config) (*Client, error) {
 	}
 
 	// Wrap the connection in a bufio Writer
-	bw := bufio.NewWriter(conn)
+	w := bufio.NewWriter(conn)
 
 	return &Client{
 		Config: config,
 		url:    u,
-		bw:     bw,
+		w:      w,
+		conn:   conn,
 	}, nil
 }
 
@@ -143,5 +145,6 @@ func (c *Client) String() string {
 
 // Close finishes a stream by flushing anything in the buffer to the receiver
 func (c *Client) Close() {
-	c.bw.Flush()
+	c.w.Flush()
+	c.conn.Close()
 }
