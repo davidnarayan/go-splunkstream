@@ -118,12 +118,12 @@ func (c *Client) basicAuth() string {
 // writeHeader sends the initial POST request with Authorization and HTTP
 // headers.
 func (c *Client) writeHeader() {
-	fmt.Fprintf(c.bw, "POST %s HTTP/1.1\r\n", c.url.RequestURI())
-	fmt.Fprintf(c.bw, "Host: %s\r\n", c.url.Host)
-	fmt.Fprintf(c.bw, "Authorization: Basic %s\r\n", c.basicAuth())
-	io.WriteString(c.bw, "x-splunk-input-mode: streaming\r\n")
-	io.WriteString(c.bw, "\r\n")
-	c.bw.Flush()
+	fmt.Fprintf(c.w, "POST %s HTTP/1.1\r\n", c.url.RequestURI())
+	fmt.Fprintf(c.w, "Host: %s\r\n", c.url.Host)
+	fmt.Fprintf(c.w, "Authorization: Basic %s\r\n", c.basicAuth())
+	io.WriteString(c.w, "x-splunk-input-mode: streaming\r\n")
+	io.WriteString(c.w, "\r\n")
+	c.w.Flush()
 
 	c.wroteHeader = true
 }
@@ -134,7 +134,7 @@ func (c *Client) Write(b []byte) (n int, err error) {
 		c.writeHeader()
 	}
 
-	return c.bw.Write(b)
+	return c.w.Write(b)
 }
 
 // String returns a string representation of the splunkstream client as an
