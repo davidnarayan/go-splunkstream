@@ -27,7 +27,7 @@ type Config struct {
 	Index      string
 }
 
-func (cf *Config) setDefaults() {
+func (cf *Config) SetDefaults() {
 	if cf.Scheme == "" {
 		cf.Scheme = "https"
 	}
@@ -57,6 +57,40 @@ func (cf *Config) setDefaults() {
 	}
 }
 
+func (cf *Config) URL() string {
+	u, q := cf.url()
+	return u.String() + "?" + q
+}
+
+func (cf *Config) RequestURI() string {
+	u, q := cf.url()
+	return u.Path + "?" + q
+}
+
+func (cf *Config) url() (*url.URL, string) {
+	cf.SetDefaults()
+
+	u := &url.URL{
+		Scheme: cf.Scheme,
+		Host:   cf.Host,
+		Path:   cf.Endpoint,
+	}
+
+	v := url.Values{}
+	v.Set("sourcetype", cf.SourceType)
+	v.Set("source", cf.Source)
+
+	if cf.Index != "" {
+		v.Set("index", cf.Index)
+	}
+
+	if cf.RemoteHost != "" {
+		v.Set("host", cf.RemoteHost)
+	}
+
+	return u, v.Encode()
+}
+
 //-----------------------------------------------------------------------------
 
 type Client struct {
@@ -67,7 +101,7 @@ type Client struct {
 }
 
 func NewClient(config *Config) (*Client, error) {
-	config.setDefaults()
+	config.SetDefaults()
 	var conn net.Conn
 
 	if config.Scheme == "https" {
@@ -108,32 +142,10 @@ func (c *Client) basicAuth() string {
 	return base64.StdEncoding.EncodeToString([]byte(auth))
 }
 
-func (c *Client) URL() string {
-	u := &url.URL{
-		Scheme: c.Config.Scheme,
-		Host:   c.Config.Host,
-		Path:   c.Config.Endpoint,
-	}
-
-	v := url.Values{}
-	v.Set("sourcetype", c.Config.SourceType)
-	v.Set("source", c.Config.Source)
-
-	if c.Config.Index != "" {
-		v.Set("index", c.Config.Index)
-	}
-
-	if c.Config.RemoteHost != "" {
-		v.Set("host", c.Config.RemoteHost)
-	}
-
-	return u.String() + "?" + v.Encode()
-}
-
 // writeHeader sends the initial POST request with Authorization and HTTP
 // headers.
 func (c *Client) writeHeader() {
-	fmt.Fprintf(c.w, "POST %s HTTP/1.1\r\n", c.URL())
+	fmt.Fprintf(c.w, "POST %s HTTP/1.1\r\n", c.Config.RequestURI())
 	fmt.Fprintf(c.w, "Host: %s\r\n", c.Config.Host)
 	fmt.Fprintf(c.w, "Authorization: Basic %s\r\n", c.basicAuth())
 	io.WriteString(c.w, "x-splunk-input-mode: streaming\r\n")
@@ -155,7 +167,7 @@ func (c *Client) Write(b []byte) (n int, err error) {
 // String returns a string representation of the splunkstream client as an
 // HTTP endpoint
 func (c *Client) String() string {
-	return c.URL()
+	return c.Config.URL()
 }
 
 // Close finishes a stream by flushing anything in the buffer to the receiver

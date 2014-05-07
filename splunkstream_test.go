@@ -34,8 +34,11 @@ func config() *Config {
 		cf.Scheme = "http"
 	}
 
+	cf.SetDefaults()
+
 	return cf
 }
+
 func TestNewClient(t *testing.T) {
 	cf := config()
 	_, err := NewClient(cf)
@@ -52,20 +55,41 @@ func TestURL(t *testing.T) {
 	cf.Source = "testsource"
 	cf.SourceType = "testsourcetype"
 
-	c, err := NewClient(cf)
-
-	if err != nil {
-		t.Error(err)
-	}
-
 	s := fmt.Sprintf("%s://%s%s?host=%s&index=%s&source=%s&sourcetype=%s",
 		cf.Scheme, cf.Host, cf.Endpoint, cf.RemoteHost, cf.Index, cf.Source,
 		cf.SourceType)
+
 	u1, err := url.Parse(s)
+
 	if err != nil {
 		t.Error(err)
 	}
-	u2 := c.URL()
+
+	u2 := cf.URL()
+
+	if u1.String() != u2 {
+		t.Errorf("Invalid URL:\nwant:\t%s\ngot:\t%s\n", u1, u2)
+	}
+}
+
+func TestRequestURI(t *testing.T) {
+	cf := config()
+	cf.Index = "testindex"
+	cf.RemoteHost = "testhost"
+	cf.Source = "testsource"
+	cf.SourceType = "testsourcetype"
+
+	s := fmt.Sprintf("%s?host=%s&index=%s&source=%s&sourcetype=%s",
+		cf.Endpoint, cf.RemoteHost, cf.Index, cf.Source,
+		cf.SourceType)
+
+	u1, err := url.Parse(s)
+
+	if err != nil {
+		t.Error(err)
+	}
+
+	u2 := cf.RequestURI()
 
 	if u1.String() != u2 {
 		t.Errorf("Invalid URL:\nwant:\t%s\ngot:\t%s\n", u1, u2)
