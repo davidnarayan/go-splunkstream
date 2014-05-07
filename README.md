@@ -20,11 +20,13 @@ import (
 
 func main() {
 	c, err := splunkstream.NewClient(
-		"localhost:8089",
 		&splunkstream.Config{
+			Host:       "localhost:8089",
 			Username:   "admin",
 			Password:   "changeme",
 			SourceType: "testevent",
+			Source:     "splunkstream/example.go",
+			Scheme:     "http",
 		})
 
 	if err != nil {
@@ -40,11 +42,11 @@ func main() {
 	t0 := time.Now()
 
 	for i := 0; i < n; i++ {
-		event := fmt.Sprintf("%s [stream_id=%03d] Test event %d\n",
-			time.Now(), id, i)
-		c.Send(event)
+		event := fmt.Sprintf("%s [stream_id=%03d] Test event %d\n", time.Now(), id, i)
+		c.Write([]byte(event))
 	}
 
-	log.Printf("Sent %d events in %s", n, time.Now().Sub(t0))
+	c.Close()
+	log.Printf("Sent %d events to %s in %s", n, c, time.Now().Sub(t0))
 }
 `
