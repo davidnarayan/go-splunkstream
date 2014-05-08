@@ -6,7 +6,7 @@ go-splunkstream is a library for the Splunk HTTP streaming receiver
 Quick Start
 -----------
 
-`go
+```go
 package main
 
 import (
@@ -49,4 +49,4 @@ func main() {
 	c.Close()
 	log.Printf("Sent %d events to %s in %s", n, c, time.Now().Sub(t0))
 }
-`
+```
