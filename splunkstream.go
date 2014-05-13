@@ -13,20 +13,23 @@ import (
 
 //-----------------------------------------------------------------------------
 
+// Config holds everything required to connect and create events in Splunk
 type Config struct {
-	Scheme   string
-	Host     string
-	Username string
-	Password string
-	Endpoint string
+	Scheme   string // http or https
+	Host     string // host:port of the Splunk HTTP receiver
+	Username string // username that has access to Splunk (requires edit_tcp)
+	Password string // password for access to Splunk
+	Endpoint string // API endpoint for the HTTP stream receiver
 
 	// Query args for receiver
-	Source     string
-	SourceType string
-	RemoteHost string
-	Index      string
+	Source     string // maps to "source" in Splunk
+	SourceType string // maps to "sourcetype" in Splunk
+	RemoteHost string // maps to "host" in Splunk
+	Index      string // maps to "index" in Splunk
 }
 
+// SetDefaults sets the default configuration values for connecting to the
+// HTTP stream receiver
 func (cf *Config) SetDefaults() {
 	if cf.Scheme == "" {
 		cf.Scheme = "https"
@@ -57,16 +60,21 @@ func (cf *Config) SetDefaults() {
 	}
 }
 
+// URL builds the URL for connecting to the Splunk HTTP stream receiver
 func (cf *Config) URL() string {
 	u, q := cf.url()
 	return u.String() + "?" + q
 }
 
+// RequestURI builds the URI path for the Splunk HTTP stream receiver. This is
+// similar to URL() but does not have the scheme, host, or port
 func (cf *Config) RequestURI() string {
 	u, q := cf.url()
 	return u.Path + "?" + q
 }
 
+// url builds the url for the HTTP stream receiver including the API anedpoint
+// and any query args.
 func (cf *Config) url() (*url.URL, string) {
 	cf.SetDefaults()
 
@@ -93,6 +101,7 @@ func (cf *Config) url() (*url.URL, string) {
 
 //-----------------------------------------------------------------------------
 
+// Client represents a client connection to Splunk
 type Client struct {
 	Config      *Config
 	wroteHeader bool
@@ -100,6 +109,7 @@ type Client struct {
 	conn        net.Conn
 }
 
+// NewClient creates a new client connection to Splunk
 func NewClient(config *Config) (*Client, error) {
 	config.SetDefaults()
 	var conn net.Conn
